@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>TravelBuddy – LangGraph Router</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d0f1a;
+  color: #e8eaf0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.slide {
+  display: none;
+  width: 100vw; height: 100vh;
+  padding: 52px 80px;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.slide.active { display: flex; }
+
+.slide::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  filter: blur(140px);
+  opacity: 0.12;
+  pointer-events: none;
+}
+.s1::before { background: #4d8af0; top: -200px; right: -100px; }
+.s2::before { background: #34a853; bottom: -200px; left: -100px; }
+.s3::before { background: #fb8c00; top: -150px; right: -80px; }
+.s4::before { background: #e05252; bottom: -200px; left: -80px; }
+
+/* ── Header ── */
+.hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.tag {
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #4d8af0; margin-bottom: 12px;
+}
+h1 {
+  font-size: 56px; font-weight: 800; line-height: 1.1; color: #fff;
+}
+h1 em { font-style: normal; color: #4d8af0; }
+h2 {
+  font-size: 44px; font-weight: 800; line-height: 1.15; color: #fff;
+}
+h2 em { font-style: normal; color: #4d8af0; }
+.pills { display: flex; gap: 10px; padding-top: 6px; }
+.pill {
+  font-size: 13px; font-weight: 700; padding: 5px 14px;
+  border-radius: 20px; border: 1px solid; letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.p-blue   { border-color:#4d8af0; color:#4d8af0; background:rgba(77,138,240,.1); }
+.p-green  { border-color:#34a853; color:#34a853; background:rgba(52,168,83,.1); }
+.p-orange { border-color:#fb8c00; color:#fb8c00; background:rgba(251,140,0,.1); }
+.p-red    { border-color:#e05252; color:#e05252; background:rgba(224,82,82,.1); }
+
+/* ── Body ── */
+.body { display: flex; gap: 24px; flex: 1; padding-top: 32px; }
+.col  { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+
+.card {
+  border-radius: 14px;
+  padding: 22px 26px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  flex: 1;
+}
+.card.blue   { border-color:rgba(77,138,240,.35);  background:rgba(77,138,240,.07); }
+.card.green  { border-color:rgba(52,168,83,.35);   background:rgba(52,168,83,.07); }
+.card.orange { border-color:rgba(251,140,0,.35);   background:rgba(251,140,0,.07); }
+.card.red    { border-color:rgba(224,82,82,.35);   background:rgba(224,82,82,.07); }
+.card.purple { border-color:rgba(147,52,230,.35);  background:rgba(147,52,230,.07); }
+
+.clabel {
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.card.blue   .clabel { color:#7ab4ff; }
+.card.green  .clabel { color:#6fe08a; }
+.card.orange .clabel { color:#ffa040; }
+.card.red    .clabel { color:#ff8a8a; }
+.card.purple .clabel { color:#c090f0; }
+
+.card p { font-size: 17px; color: #a8b0c8; line-height: 1.7; }
+.card strong { color: #e8eaf0; }
+
+ul.pts { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+ul.pts li {
+  font-size: 17px; color: #a8b0c8; line-height: 1.5;
+  display: flex; gap: 10px;
+}
+ul.pts li::before { content: '›'; color: #3d4466; flex-shrink: 0; }
+
+.code {
+  font-family: 'Cascadia Code','Fira Code',monospace;
+  font-size: 14px; line-height: 1.75;
+  background: #080a12;
+  border: 1px solid #1e2440;
+  border-radius: 10px;
+  padding: 16px 18px;
+  color: #a8d8a8;
+}
+.cm  { color: #3d4a6a; font-style: italic; }
+.kw  { color: #7ab4ff; }
+.fn  { color: #ffd080; }
+.st  { color: #f0a070; }
+
+/* ── Slide 2 graph ── */
+.graph {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+}
+.gn {
+  border-radius: 10px; padding: 10px 20px;
+  font-size: 14px; font-weight: 700;
+  text-align: center; white-space: nowrap; min-width: 150px;
+}
+.gn sub { font-size: 11px; font-weight: 400; opacity: .65; display: block; margin-top: 1px; }
+.gn.start { background:#1e2440; border:2px solid #4d8af0; color:#7ab4ff; }
+.gn.clf   { background:#152035; border:2px solid #4d8af0; color:#a8c8ff; }
+.gn.trip  { background:#0f2018; border:2px solid #34a853; color:#6fe08a; }
+.gn.tour  { background:#231010; border:2px solid #e05252; color:#ff9090; }
+.gn.rej   { background:#1a1028; border:2px solid #9334e6; color:#c090f0; }
+.gn.tool  { background:#1e1608; border:2px dashed #fb8c00; color:#ffa040;
+            font-size:12px; min-width:120px; padding:8px 12px; }
+.garr { color:#3d4466; font-size:20px; text-align:center; }
+.garr.g { color:#34a853; font-size:14px; }
+.garr.o { color:#fb8c00; font-size:14px; }
+.branches { display:flex; gap:20px; align-items:flex-start; }
+.branch { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.blabel { font-size:11px; color:#3d4466; font-style:italic; margin-bottom:2px; }
+.bloop  { font-size:10px; color:#fb8c00; }
+
+/* ── Slide 3 examples ── */
+.ex { display:flex; flex-direction:column; gap:8px; flex:1; }
+.ex-label { font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+.bubble {
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 15px; line-height: 1.6;
+}
+.b-user { background:#1a2440; border:1px solid #2d3a5a; color:#a8c0f0; }
+.b-clf  { background:#0e1a0e; border:1px solid #1e3a1e; color:#6fe08a; font-size:14px; }
+.b-tool { background:#1a1200; border:1px solid #3a2800; color:#ffa040;
+          font-family:monospace; font-size:13px; }
+.b-out  { background:#0d0f1a; border:1px solid #3d4466; color:#e8eaf0; font-size:14px; }
+.b-rej  { background:#1a1028; border:1px solid rgba(147,52,230,.4); color:#c090f0; font-size:14px; }
+
+/* ── Slide 4 errors ── */
+.err {
+  border-radius: 12px; padding: 18px 20px;
+  border-left: 3px solid;
+  background: rgba(0,0,0,.2);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.etitle { font-size: 17px; font-weight: 700; display: flex; gap: 8px; }
+.edesc  { font-size: 15px; color: #7a8298; line-height: 1.55; }
+.efix   {
+  font-size: 13px; font-family: monospace;
+  background: rgba(0,0,0,.3); border-radius: 6px;
+  padding: 7px 10px; color: #6fe08a; line-height: 1.6;
+}
+
+/* ── Nav ── */
+.nav {
+  position: fixed; bottom: 26px; right: 32px;
+  display: flex; align-items: center; gap: 12px; z-index: 99;
+}
+.nbtn {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  color: #e8eaf0; border-radius: 8px; width: 40px; height: 40px;
+  font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.nbtn:hover { background: rgba(77,138,240,.2); border-color: #4d8af0; }
+.ncnt { font-size: 13px; color: #3d4466; font-weight: 600; min-width: 40px; text-align: center; }
+.bar {
+  position: fixed; bottom: 0; left: 0; height: 3px;
+  background: #4d8af0; transition: width .3s;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+  S1 · KHÁI NIỆM & VAI TRÒ
+═══════════════════════════════ -->
+<div class="slide s1 active">
+  <div class="hd">
+    <div>
+      <div class="tag">Slide 1 · Khái niệm & Vai trò</div>
+      <h2>LangGraph <em>Router</em> -<br>Khái niệm & Vai trò</h2>
+    </div>
+    <div class="pills">
+      <span class="pill p-blue">Khái niệm</span>
+      <span class="pill p-green">Vai trò</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="col">
+      <div class="card blue">
+        <div class="clabel">Khái niệm</div>
+        <p>
+          <strong>LangGraph Router</strong> là node phân loại ý định người dùng,
+          dùng <strong>add_conditional_edges()</strong> để điều hướng luồng
+          đến đúng specialist node - mỗi node có tools & model riêng.
+        </p>
+      </div>
+      <div class="code">
+<span class="cm"># Router function đọc state, trả về tên node đích</span>
+<span class="kw">def</span> <span class="fn">route_by_intent</span>(state) → str:
+    <span class="kw">return</span> {
+        <span class="st">"trip_planner"</span>: <span class="st">"trip_node"</span>,
+        <span class="st">"tour_guide"</span>  : <span class="st">"tour_node"</span>,
+        <span class="st">"off_topic"</span>   : <span class="st">"rejection_node"</span>,
+    }.get(state[<span class="st">"intent"</span>], <span class="st">"rejection_node"</span>)
+
+builder.<span class="fn">add_conditional_edges</span>(<span class="st">"classifier"</span>, route_by_intent)</div>
+    </div>
+
+    <div class="col">
+      <div class="card green">
+        <div class="clabel">Vai trò</div>
+        <ul class="pts">
+          <li><strong>Cổng vào thông minh</strong> - đúng người, đúng việc, đúng model</li>
+          <li><strong>Cô lập tool</strong> - mỗi route chỉ thấy tools của mình</li>
+          <li><strong>Tối ưu chi phí và model hợp tác vụ</strong> - Thay đổi model, thông số... tùy theo tác vụ</li>
+          <li><strong>Bảo mật cứng</strong> - off-topic từ chối bằng code, không qua LLM</li>
+          <li><strong>Dễ mở rộng</strong> - thêm route = thêm 1 node + 1 edge</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+  S2 · CẤU TRÚC & FLOW
+═══════════════════════════════ -->
+<div class="slide s2">
+  <div class="hd">
+    <div>
+      <div class="tag">Slide 2 · Cấu trúc & Flow</div>
+      <h2>Graph <em>Architecture</em><br>& Luồng xử lý</h2>
+    </div>
+    <div class="pills">
+      <span class="pill p-blue">Cấu trúc</span>
+      <span class="pill p-orange">Flow</span>
+    </div>
+  </div>
+
+  <div class="body" style="align-items:stretch;">
+    <!-- Graph -->
+    <div style="display:flex;flex-direction:column;justify-content:center;min-width:300px;">
+      <div class="graph">
+        <div class="gn start">▶ START</div>
+        <div class="garr">↓</div>
+        <div class="gn clf">🧭 Classifier<sub>gpt-4o-mini · no tools</sub></div>
+        <div class="garr g">↓ add_conditional_edges(route_by_intent)</div>
+        <div class="branches">
+          <div class="branch">
+            <div class="blabel">trip_planner</div>
+            <div class="gn trip">🗺️ Trip Planner<sub>gpt-4o-mini</sub></div>
+            <div class="garr o">↕</div>
+            <div class="gn tool">🔧 search_flights<br>🔧 search_hotels<br>🔧 calculate_budget</div>
+            <div class="bloop">↺ tools_condition</div>
+          </div>
+          <div class="branch">
+            <div class="blabel">tour_guide</div>
+            <div class="gn tour">🏔️ Tour Guide<sub>gpt-4o · temp 0.7</sub></div>
+            <div class="garr o">↕</div>
+            <div class="gn tool">🔧 get_attractions</div>
+            <div class="bloop">↺ tools_condition</div>
+          </div>
+          <div class="branch">
+            <div class="blabel">off_topic</div>
+            <div class="gn rej">🚫 Rejection<sub>hard-coded · no LLM</sub></div>
+            <div class="garr">↓</div>
+            <div class="gn start" style="min-width:80px;">■ END</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="col" style="justify-content:center;">
+      <div class="card blue" style="flex:none;">
+        <div class="clabel">① User input</div>
+        <p>Bọc <strong>&lt;user_query&gt;</strong> để cô lập prompt injection</p>
+      </div>
+      <div class="card green" style="flex:none;">
+        <div class="clabel">② Classifier node</div>
+        <p>LLM phân loại intent → ghi vào <strong>state["intent"]</strong></p>
+      </div>
+      <div class="card orange" style="flex:none;">
+        <div class="clabel">③ Router → Specialist</div>
+        <p><strong>route_by_intent()</strong> đọc state, trả về tên node đích</p>
+      </div>
+      <div class="card" style="flex:none;">
+        <div class="clabel" style="color:#8892b0;">④ Tool loop → END</div>
+        <p><strong>tools_condition</strong> lặp tool đến khi LLM direct reply</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+  S3 · VÍ DỤ CỤ THỂ
+═══════════════════════════════ -->
+<div class="slide s3">
+  <div class="hd">
+    <div>
+      <div class="tag">Slide 3 · Ví dụ cụ thể</div>
+      <h2>Router <em>in Action</em><br>- 3 luồng thực tế</h2>
+    </div>
+    <div class="pills">
+      <span class="pill p-orange">Ví dụ</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- Trip -->
+    <div class="ex">
+      <div class="ex-label" style="color:#34a853;">🗺️ Trip Planner</div>
+      <div class="bubble b-user">"Đi Phú Quốc từ Hà Nội,<br>ngân sách 6 triệu, 3 đêm"</div>
+      <div class="bubble b-clf">🧭 intent = <strong>trip_planner</strong></div>
+      <div class="bubble b-tool">🔧 search_flights("Hà Nội","Phú Quốc")<br>🔧 search_hotels("Phú Quốc", 800000)<br>🔧 calculate_budget(6000000, ...)</div>
+      <div class="bubble b-out">✈️ VietJet 1.100.000đ<br>🏨 9Station Hostel 200.000đ/đêm<br>💰 Còn lại: 4.300.000đ</div>
+    </div>
+
+    <!-- Tour -->
+    <div class="ex">
+      <div class="ex-label" style="color:#e05252;">🏔️ Tour Guide</div>
+      <div class="bubble b-user">"Lên lịch trình 2 ngày<br>ở Đà Nẵng"</div>
+      <div class="bubble b-clf">🧭 intent = <strong>tour_guide</strong></div>
+      <div class="bubble b-tool">🔧 get_attractions("Đà Nẵng")<br><span style="color:#5a6280">→ 8 địa điểm trả về</span></div>
+      <div class="bubble b-out">🗓 Ngày 1: Bà Nà Hills → Chợ Hàn<br>🗓 Ngày 2: Hội An → Mỳ Quảng tối</div>
+    </div>
+
+    <!-- Off-topic + Clarification -->
+    <div class="ex">
+      <div class="ex-label" style="color:#9334e6;">🚫 Off-topic & Clarification</div>
+      <div class="bubble b-user">"Giúp mình viết code Python"</div>
+      <div class="bubble b-clf">🧭 intent = <strong>off_topic</strong></div>
+      <div class="bubble b-rej">🚫 Hard-coded — no LLM call<br>"Mình chỉ hỗ trợ du lịch thôi!"</div>
+      <div class="bubble b-user" style="margin-top:6px;">"Đi núi, khí hậu lạnh"</div>
+      <div class="bubble b-out">Gợi ý: Đà Lạt, Sa Pa, Mù Cang Chải.<br>Bạn muốn lịch trình ở đâu?</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+  S4 · LỖI THƯỜNG GẶP
+═══════════════════════════════ -->
+<div class="slide s4">
+  <div class="hd">
+    <div>
+      <div class="tag">Slide 4 · Lỗi thường gặp</div>
+      <h2>Những <em>Pitfalls</em><br>cần tránh</h2>
+    </div>
+    <div class="pills">
+      <span class="pill p-red">Lỗi & Fix</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="col">
+      <div class="err" style="border-color:#e05252;">
+        <div class="etitle"><span style="color:#e05252;">⚠</span><span style="color:#ff9090;">Classifier trả nhãn ngoài whitelist</span></div>
+        <div class="edesc">LLM trả "trip" thay vì "trip_planner" → router không khớp → từ chối nhầm.</div>
+        <div class="efix">if intent not in VALID: intent = "off_topic"</div>
+      </div>
+
+      <div class="err" style="border-color:#fb8c00;">
+        <div class="etitle"><span style="color:#fb8c00;">⚠</span><span style="color:#ffa040;">Model echo lại &lt;user_query&gt; tag</span></div>
+        <div class="edesc">Input quá ngắn → model lặp lại tag thay vì xử lý nội dung.</div>
+        <div class="efix">re.sub(r"&lt;user_query&gt;.*?&lt;/user_query&gt;", "", content)</div>
+      </div>
+
+      <div class="err" style="border-color:#9334e6;">
+        <div class="etitle"><span style="color:#9334e6;">⚠</span><span style="color:#c090f0;">Vòng lặp tool vô tận</span></div>
+        <div class="edesc">Tool raise exception → LLM không nhận thông báo lỗi → gọi lại mãi.</div>
+        <div class="efix">Tools phải return chuỗi lỗi, không raise exception</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="err" style="border-color:#34a853;">
+        <div class="etitle"><span style="color:#34a853;">⚠</span><span style="color:#6fe08a;">State thiếu key khi invoke()</span></div>
+        <div class="edesc">AgentState thêm field <code>intent</code> nhưng không truyền khi gọi graph.</div>
+        <div class="efix">graph.invoke(&#123;"messages":[...], "intent":""&#125;)</div>
+      </div>
+
+      <div class="err" style="border-color:#fb8c00;">
+        <div class="etitle"><span style="color:#fb8c00;">⚠</span><span style="color:#ffa040;">add_conditional_edges thiếu mapping key</span></div>
+        <div class="edesc">Router trả giá trị không có trong dict mapping → LangGraph runtime error.</div>
+        <div class="efix">.get(intent, "rejection_node")  # luôn có fallback</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button class="nbtn" onclick="prev()">‹</button>
+  <span class="ncnt" id="nc">1 / 4</span>
+  <button class="nbtn" onclick="next()">›</button>
+</div>
+<div class="bar" id="bar" style="width:25%"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    document.getElementById('nc').textContent = (cur+1)+' / '+slides.length;
+    document.getElementById('bar').style.width = ((cur+1)/slides.length*100)+'%';
+  }
+  function next() { show(cur+1); }
+  function prev() { show(cur-1); }
+  document.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key===' ') next();
+    if (e.key==='ArrowLeft') prev();
+  });
+</script>
+</body>
+</html>
